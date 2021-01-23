@@ -30,7 +30,7 @@ CPMAddPackage(
 CPMAddPackage(
   NAME cpmpckg
   GITHUB_REPOSITORY loopunit/cpmpckg
-  GIT_TAG 3f9b7a914bd99fce0b539dd96afbca624eb0fde6)
+  GIT_TAG 5afe7abc5d22b6ae2504a91bc857b159963f2a88)
 
 ####
 
