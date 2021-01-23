@@ -1,1 +1,2 @@
-# imgui_app_fw.cpmpckg
+# imgui.cpm
+CPM enabled imgui
