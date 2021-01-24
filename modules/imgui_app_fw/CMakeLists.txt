@@ -14,7 +14,6 @@ if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
 endif()
 
 include(ExternalProject)
-include(${CPM_SCRIPTS}/CPM.cmake)
 
 if(NOT ${imgui_app_fw_ADDED})
 	message( FATAL_ERROR "Could not find imgui_app_fw" )

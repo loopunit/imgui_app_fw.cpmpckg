@@ -15,7 +15,6 @@ option(IMGUI_BUILD_APP_GLFW_VULKAN "GLFW Vulkan" ON)
 # see https://github.com/TheLartians/CPM.cmake for more info
 
 include(cmake/CPM.cmake)
-include(cmake/add_cpm_module.cmake)
 include(ExternalProject)
 
 ####
