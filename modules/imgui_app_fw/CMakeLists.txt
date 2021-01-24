@@ -16,12 +16,6 @@ endif()
 include(ExternalProject)
 include(${CPM_SCRIPTS}/CPM.cmake)
 
-CPMAddPackage(
-	NAME imgui_app_fw
-	GITHUB_REPOSITORY loopunit/imgui.cpm
-	GIT_TAG 65b63954c578aea5dac6e0abf97078e12db13888 
-	DOWNLOAD_ONLY TRUE)
-
 if(NOT ${imgui_app_fw_ADDED})
 	message( FATAL_ERROR "Could not find imgui_app_fw" )
 endif()
