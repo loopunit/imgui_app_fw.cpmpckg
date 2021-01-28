@@ -29,15 +29,16 @@ CPMAddPackage(
 CPMAddPackage(
   NAME cpmpckg
   GITHUB_REPOSITORY loopunit/cpmpckg
-  GIT_TAG 5afe7abc5d22b6ae2504a91bc857b159963f2a88)
+  GIT_TAG e78ba4466648414c8ec5533cdd716c0ad77bc356)
+
+include(${cpmpckg_SOURCE_DIR}/cmake/add_cpm_module.cmake)
 
 ####
-
-CPMAddBaseModule(glslang)
+	
+CPMAddBaseModule(imgui)
+CPMAddBaseModule(framegraph)
 CPMAddBaseModule(basis_universal)
 CPMAddBaseModule(glfw)
-CPMAddBaseModule(framegraph)
-CPMAddBaseModule(imgui)
 
 set(imgui_app_fw_SOURCE_ROOT ${CMAKE_CURRENT_LIST_DIR})
 
@@ -122,7 +123,7 @@ if(IMGUI_BUILD_APP_WIN32_DX12)
 endif()
 
 target_include_directories(imgui_app_fw PUBLIC $<BUILD_INTERFACE:${imgui_app_fw_SOURCE_ROOT}/include>
-				 $<INSTALL_INTERFACE:imgui_app_fw>)
+					$<INSTALL_INTERFACE:imgui_app_fw>)
 
 target_link_libraries(imgui_app_fw
 	PUBLIC
@@ -153,7 +154,7 @@ endif()
 if(IMGUI_BUILD_APP_GLFW_VULKAN)
 	target_link_libraries(imgui_app_fw
 		PUBLIC
-			cpm_runtime::glfw cpm_runtime::framegraph cpm_runtime::glslang cpm_runtime::spirv cpm_runtime::basis_universal)
+			cpm_runtime::glfw cpm_runtime::framegraph cpm_runtime::basis_universal)
 
 	target_compile_definitions(imgui_app_fw
 		PUBLIC
@@ -163,18 +164,18 @@ endif()
 set_target_properties(imgui_app_fw PROPERTIES CXX_STANDARD 17)
 
 packageProject(
-  # the name of the target to export
-  NAME imgui_app_fw
-  # the version of the target to export
-  VERSION ${PROJECT_VERSION}
-  # a temporary directory to create the config files
-  BINARY_DIR ${PROJECT_BINARY_DIR}
-  # location of the target's public headers
-  INCLUDE_DIR ${imgui_app_fw_SOURCE_ROOT}/include
-  # should match the target's INSTALL_INTERFACE include directory
-  INCLUDE_DESTINATION include
-  # semicolon separated list of the project's dependencies
-  DEPENDENCIES "imgui")
+	# the name of the target to export
+	NAME imgui_app_fw
+	# the version of the target to export
+	VERSION ${PROJECT_VERSION}
+	# a temporary directory to create the config files
+	BINARY_DIR ${PROJECT_BINARY_DIR}
+	# location of the target's public headers
+	INCLUDE_DIR ${imgui_app_fw_SOURCE_ROOT}/include
+	# should match the target's INSTALL_INTERFACE include directory
+	INCLUDE_DESTINATION include
+	# semicolon separated list of the project's dependencies
+	DEPENDENCIES "imgui")
 
 add_library(cpm_runtime::imgui_app_fw ALIAS imgui_app_fw)
 
@@ -356,23 +357,23 @@ set_target_properties(imgui_addons PROPERTIES CXX_STANDARD 20)
 target_link_libraries(imgui_addons PRIVATE cpm_runtime::imgui)
 
 target_include_directories(imgui_addons PUBLIC $<BUILD_INTERFACE:${STAGING_ROOT}/include>
-				 $<INSTALL_INTERFACE:imgui_addons>)
+					$<INSTALL_INTERFACE:imgui_addons>)
 
 target_compile_definitions(imgui_addons PUBLIC SPDLOG_COMPILED_LIB SPDLOG_FMT_EXTERNAL)
 
 packageProject(
-  # the name of the target to export
-  NAME imgui_addons
-  # the version of the target to export
-  VERSION ${PROJECT_VERSION}
-  # a temporary directory to create the config files
-  BINARY_DIR ${PROJECT_BINARY_DIR}
-  # location of the target's public headers
-  INCLUDE_DIR ${STAGING_ROOT}/include
-  # should match the target's INSTALL_INTERFACE include directory
-  INCLUDE_DESTINATION include
-  # semicolon separated list of the project's dependencies
-  DEPENDENCIES ""
+	# the name of the target to export
+	NAME imgui_addons
+	# the version of the target to export
+	VERSION ${PROJECT_VERSION}
+	# a temporary directory to create the config files
+	BINARY_DIR ${PROJECT_BINARY_DIR}
+	# location of the target's public headers
+	INCLUDE_DIR ${STAGING_ROOT}/include
+	# should match the target's INSTALL_INTERFACE include directory
+	INCLUDE_DESTINATION include
+	# semicolon separated list of the project's dependencies
+	DEPENDENCIES ""
 )
 
 add_library(cpm_runtime::imgui_addons ALIAS imgui_addons)
@@ -557,33 +558,33 @@ target_include_directories(imgui_app PUBLIC ${imgui_public_include_paths})
 set_target_properties(imgui_app PROPERTIES CXX_STANDARD 17)
 
 packageProject(
-  # the name of the target to export
-  NAME imgui_app
-  # the version of the target to export
-  VERSION ${PROJECT_VERSION}
-  # a temporary directory to create the config files
-  BINARY_DIR ${PROJECT_BINARY_DIR}
-  # location of the target's public headers
-  INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include
-  # should match the target's INSTALL_INTERFACE include directory
-  INCLUDE_DESTINATION include
-  # semicolon separated list of the project's dependencies
-  DEPENDENCIES "")
+	# the name of the target to export
+	NAME imgui_app
+	# the version of the target to export
+	VERSION ${PROJECT_VERSION}
+	# a temporary directory to create the config files
+	BINARY_DIR ${PROJECT_BINARY_DIR}
+	# location of the target's public headers
+	INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include
+	# should match the target's INSTALL_INTERFACE include directory
+	INCLUDE_DESTINATION include
+	# semicolon separated list of the project's dependencies
+	DEPENDENCIES "")
   
- if(IMGUI_BUILD_EXAMPLES)
+	if(IMGUI_BUILD_EXAMPLES)
 	file(GLOB example_sources 
 		${CMAKE_CURRENT_SOURCE_DIR}/examples/app_main.cpp)
 
-    add_executable(imgui_app_example
-        ${example_sources})
+	add_executable(imgui_app_example
+		${example_sources})
     
 	set_target_properties(imgui_app_example PROPERTIES CXX_STANDARD 17)
 
-    target_include_directories(imgui_app_example
-        PRIVATE 
-            ${imgui_SOURCE_DIR}/examples)
+	target_include_directories(imgui_app_example
+		PRIVATE 
+			${imgui_SOURCE_DIR}/examples)
     
-    target_link_libraries(imgui_app_example
-        PUBLIC
-            imgui_app)
+	target_link_libraries(imgui_app_example
+		PUBLIC
+			imgui_app)
 endif()
