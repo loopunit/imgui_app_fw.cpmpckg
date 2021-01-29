@@ -151,7 +151,7 @@ FSM_INITIAL_STATE(application_model::fsm, application_model::bootstrap);
 
 int main(int, char**)
 {
-	if (imgui_app::select_platform(imgui_app_fw::platform::glfw_vulkan))
+	if (imgui_app::select_platform())
 	{
 		if (imgui_app::init())
 		{

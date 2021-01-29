@@ -7,15 +7,29 @@ include(CMakeDependentOption)
 
 option(IMGUI_BUILD_EXAMPLES "Build examples." OFF)
 cmake_dependent_option(IMGUI_BUILD_APP_FW "Build app framework." OFF "IMGUI_BUILD_EXAMPLES" ON)
-option(IMGUI_BUILD_APP_WIN32_DX11 "Win32 DX11" OFF)
-option(IMGUI_BUILD_APP_WIN32_DX12 "Win32 DX12" OFF)
-option(IMGUI_BUILD_APP_GLFW_VULKAN "GLFW Vulkan" ON)
 
 # ---- Add dependencies via CPM ----
 # see https://github.com/TheLartians/CPM.cmake for more info
 
-include(cmake/CPM.cmake)
 include(ExternalProject)
+
+####
+
+if (NOT DEFINED CPM_SCRIPTS)
+	include(cmake/CPM.cmake)
+
+	CPMAddPackage(
+	  NAME cpmpckg
+	  SOURCE_DIR "C:/projects/loopunit/cpmpckg"
+	  #GITHUB_REPOSITORY loopunit/cpmpckg
+	  #GIT_TAG xxx
+	  DOWNLOAD_ONLY true)
+
+	include(${cpmpckg_SOURCE_DIR}/cmake/add_cpm_module.cmake)
+else()
+	include(${CPM_SCRIPTS}/CPM.cmake)
+	include(${CPM_SCRIPTS}/add_cpm_module.cmake)
+endif()
 
 ####
 
@@ -26,15 +40,6 @@ CPMAddPackage(
 
 ####
 
-CPMAddPackage(
-  NAME cpmpckg
-  GITHUB_REPOSITORY loopunit/cpmpckg
-  GIT_TAG e78ba4466648414c8ec5533cdd716c0ad77bc356)
-
-include(${cpmpckg_SOURCE_DIR}/cmake/add_cpm_module.cmake)
-
-####
-	
 CPMAddBaseModule(imgui)
 CPMAddBaseModule(framegraph)
 CPMAddBaseModule(basis_universal)
@@ -45,6 +50,7 @@ set(imgui_app_fw_SOURCE_ROOT ${CMAKE_CURRENT_LIST_DIR})
 file(GLOB app_fw_impl_headers)
 file(GLOB app_fw_impl_sources)
 
+# Hijacking source from the imgui project, so the imgui cpm module isn't applicable
 CPMAddPackage(
 	NAME imgui
 	GITHUB_REPOSITORY ocornut/imgui
@@ -55,55 +61,12 @@ if(NOT ${imgui_ADDED})
 	message( FATAL_ERROR "Could not find imgui" )
 endif()
 
-if(IMGUI_BUILD_APP_WIN32_DX12)
-	CPMAddPackage(
-		NAME D3D12MemoryAllocator
-		GITHUB_REPOSITORY GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator
-		GIT_TAG a322398f6cbc84fbb38bebd473592e6250e5e065
-		DOWNLOAD_ONLY TRUE)
+file(GLOB app_fw_impl_sources2 
+	"${imgui_app_fw_SOURCE_ROOT}/src/glfw_vulkan/VulkanDevice2.h"
+	"${imgui_app_fw_SOURCE_ROOT}/src/glfw_vulkan/VulkanDevice2.cpp"
+	"${imgui_app_fw_SOURCE_ROOT}/src/glfw_vulkan/main.cpp")
 
-	if(NOT ${D3D12MemoryAllocator_ADDED})
-		message(FATAL_ERROR "Could not find D3D12MemoryAllocator")
-	endif()
-
-	list(APPEND app_fw_impl_headers ${D3D12MemoryAllocator_SOURCE_DIR}/src/D3D12MemAlloc.h)
-	list(APPEND app_fw_impl_sources ${D3D12MemoryAllocator_SOURCE_DIR}/src/D3D12MemAlloc.cpp)
-endif()
-
-if(IMGUI_BUILD_APP_WIN32_DX12)
-	file(GLOB app_fw_impl_headers2 
-		"${imgui_SOURCE_DIR}/backends/imgui_impl_win32.h"
-		"${imgui_app_fw_SOURCE_ROOT}/src/win32_dx12/imgui_impl_dx12.h")
-	file(GLOB app_fw_impl_sources2
-		"${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp"
-		"${imgui_app_fw_SOURCE_ROOT}/src/win32_dx12/imgui_impl_dx12.cpp"
-		"${imgui_app_fw_SOURCE_ROOT}/src/win32_dx12/main.cpp")
-
-	list(APPEND app_fw_impl_headers ${app_fw_impl_headers2})
-	list(APPEND app_fw_impl_sources ${app_fw_impl_sources2})
-endif()
-
-if(IMGUI_BUILD_APP_WIN32_DX11)
-	file(GLOB app_fw_impl_headers2
-		"${imgui_SOURCE_DIR}/backends/imgui_impl_win32.h"
-		"${imgui_SOURCE_DIR}/backends/imgui_impl_dx11.h")
-	file(GLOB app_fw_impl_sources2
-		"${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp"
-		"${imgui_SOURCE_DIR}/backends/imgui_impl_dx11.cpp"
-		"${imgui_app_fw_SOURCE_ROOT}/src/win32_dx11/main.cpp")
-
-	list(APPEND app_fw_impl_headers ${app_fw_impl_headers2})
-	list(APPEND app_fw_impl_sources ${app_fw_impl_sources2})
-endif()
-
-if(IMGUI_BUILD_APP_GLFW_VULKAN)
-	file(GLOB app_fw_impl_sources2 
-		"${imgui_app_fw_SOURCE_ROOT}/src/glfw_vulkan/VulkanDevice2.h"
-		"${imgui_app_fw_SOURCE_ROOT}/src/glfw_vulkan/VulkanDevice2.cpp"
-		"${imgui_app_fw_SOURCE_ROOT}/src/glfw_vulkan/main.cpp")
-
-	list(APPEND app_fw_impl_sources ${app_fw_impl_sources2})
-endif()
+list(APPEND app_fw_impl_sources ${app_fw_impl_sources2})
 
 file(GLOB app_fw_headers
 	"${imgui_app_fw_SOURCE_ROOT}/include/*.h")
@@ -118,10 +81,6 @@ target_include_directories(imgui_app_fw
 	PRIVATE 
 		${imgui_SOURCE_DIR}/backends)
 
-if(IMGUI_BUILD_APP_WIN32_DX12)
-	target_include_directories(imgui_app_fw PRIVATE ${D3D12MemoryAllocator_SOURCE_DIR}/src)
-endif()
-
 target_include_directories(imgui_app_fw PUBLIC $<BUILD_INTERFACE:${imgui_app_fw_SOURCE_ROOT}/include>
 					$<INSTALL_INTERFACE:imgui_app_fw>)
 
@@ -129,37 +88,13 @@ target_link_libraries(imgui_app_fw
 	PUBLIC
 		cpm_runtime::imgui)
 
-if(IMGUI_BUILD_APP_WIN32_DX12)
-	target_link_libraries(imgui_app_fw
-		PUBLIC
-			d3d12 d3dcompiler dxgi)
-endif()
+target_link_libraries(imgui_app_fw
+	PUBLIC
+		cpm_runtime::glfw cpm_runtime::framegraph cpm_runtime::basis_universal)
 
-if(IMGUI_BUILD_APP_WIN32_DX12)
-	target_compile_definitions(imgui_app_fw
-		PUBLIC
-			IMGUI_APP_WIN32_DX12=1)
-endif()
-
-if(IMGUI_BUILD_APP_WIN32_DX11)
-	target_link_libraries(imgui_app_fw
-		PUBLIC
-			d3d11 d3dcompiler dxgi)
-
-	target_compile_definitions(imgui_app_fw
-		PUBLIC
-			IMGUI_APP_WIN32_DX11=1)
-endif()
-
-if(IMGUI_BUILD_APP_GLFW_VULKAN)
-	target_link_libraries(imgui_app_fw
-		PUBLIC
-			cpm_runtime::glfw cpm_runtime::framegraph cpm_runtime::basis_universal)
-
-	target_compile_definitions(imgui_app_fw
-		PUBLIC
-			IMGUI_APP_GLFW_VULKAN=1)
-endif()
+target_compile_definitions(imgui_app_fw
+	PUBLIC
+		IMGUI_APP_GLFW_VULKAN=1)
 
 set_target_properties(imgui_app_fw PROPERTIES CXX_STANDARD 17)
 

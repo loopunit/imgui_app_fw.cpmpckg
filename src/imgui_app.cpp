@@ -409,9 +409,9 @@ namespace imgui_app
 {
 	using logger = singleton<details::logger>;
 
-	bool select_platform(imgui_app_fw::platform p)
+	bool select_platform()
 	{
-		return imgui_app_fw::select_platform(p);
+		return imgui_app_fw::select_platform();
 	}
 
 	void set_window_title(const char* title)

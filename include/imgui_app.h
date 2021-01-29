@@ -471,7 +471,7 @@ namespace imgui_app
 
 namespace imgui_app
 {
-	bool select_platform(imgui_app_fw::platform p);
+	bool select_platform();
 	void set_window_title(const char* title);
 	bool init();
 	bool pump();

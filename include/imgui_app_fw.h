@@ -4,14 +4,7 @@
 
 namespace imgui_app_fw
 {
-	enum class platform
-	{
-		win32_dx11,
-		win32_dx12,
-		glfw_vulkan,
-	};
-	
-	bool select_platform(platform p);
+	bool select_platform();
 	void set_window_title(const char* title);
 
 	bool init();

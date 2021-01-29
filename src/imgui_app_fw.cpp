@@ -35,45 +35,15 @@ namespace imgui_app_fw
 	static auto destroy_gui_impl = destroy_gui_null;
 	static auto set_window_title_impl = set_window_title_null;
 
-	bool select_platform(platform p)
+	bool select_platform()
 	{
-#if IMGUI_APP_WIN32_DX11
-		if (p == platform::win32_dx11)
-		{
-			init_gui_impl = init_gui_win32_dx11;
-			pump_gui_impl = pump_gui_win32_dx11;
-			begin_frame_gui_impl = begin_frame_gui_win32_dx11;
-			end_frame_gui_impl = end_frame_gui_win32_dx11;
-			destroy_gui_impl = destroy_gui_win32_dx11;
-			set_window_title_impl = set_window_title_win32_dx11;
-			return true;
-		}
-#endif
-#if IMGUI_APP_WIN32_DX12
-		if (p == platform::win32_dx12)
-		{
-			init_gui_impl = init_gui_win32_dx12;
-			pump_gui_impl = pump_gui_win32_dx12;
-			begin_frame_gui_impl = begin_frame_gui_win32_dx12;
-			end_frame_gui_impl = end_frame_gui_win32_dx12;
-			destroy_gui_impl = destroy_gui_win32_dx12;
-			set_window_title_impl = set_window_title_win32_dx12;
-			return true;
-		}
-#endif
-#if IMGUI_APP_GLFW_VULKAN
-		if (p == platform::glfw_vulkan)
-		{
-			init_gui_impl = init_gui_glfw_vulkan;
-			pump_gui_impl = pump_gui_glfw_vulkan;
-			begin_frame_gui_impl = begin_frame_gui_glfw_vulkan;
-			end_frame_gui_impl = end_frame_gui_glfw_vulkan;
-			destroy_gui_impl = destroy_gui_glfw_vulkan;
-			set_window_title_impl = set_window_title_glfw_vulkan;
-			return true;
-		}
-#endif
-		return false;
+		init_gui_impl = init_gui_glfw_vulkan;
+		pump_gui_impl = pump_gui_glfw_vulkan;
+		begin_frame_gui_impl = begin_frame_gui_glfw_vulkan;
+		end_frame_gui_impl = end_frame_gui_glfw_vulkan;
+		destroy_gui_impl = destroy_gui_glfw_vulkan;
+		set_window_title_impl = set_window_title_glfw_vulkan;
+		return true;
 	}
 
 	bool init()
