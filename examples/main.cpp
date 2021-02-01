@@ -1,5 +1,4 @@
 #include <imgui_app_fw.h>
-#include <imgui_app_fw_rendering.h>
 
 //struct custom_scene
 //{
@@ -59,20 +58,20 @@
 // Main code
 int main(int, char**)
 {
-	if (imgui_app_fw::select_platform())
+	if (imgui_app_fw()->select_platform())
 	{
-		if (imgui_app_fw::init())
+		if (imgui_app_fw()->init())
 		{
-			imgui_app_fw::set_window_title("Hello!");
+			imgui_app_fw()->set_window_title("Hello!");
 
 			// Our state
 			bool   show_demo_window	   = true;
 			bool   show_another_window = false;
 			ImVec4 clear_color		   = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-			while (imgui_app_fw::pump())
+			while (imgui_app_fw()->pump())
 			{
-				imgui_app_fw::begin_frame();
+				imgui_app_fw()->begin_frame();
 
 				// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
 				if (show_demo_window)
@@ -116,7 +115,7 @@ int main(int, char**)
 
 					ImGui::GetWindowDrawList()->AddCallback(
 						[](const ImDrawList* parent_list, const ImDrawCmd* cmd) -> void {
-							auto user_data = imgui_app_fw::mutable_userdata::get_from_draw_cmd(cmd);
+							auto user_data = imgui_app_fw_interface::mutable_userdata::get_from_draw_cmd(cmd);
 							auto pos_x	   = cmd->ClipRect.x;
 							auto width	   = (cmd->ClipRect.z - cmd->ClipRect.x);
 							auto pos_y	   = cmd->ClipRect.y;
@@ -133,10 +132,10 @@ int main(int, char**)
 					ImGui::End();
 				}
 
-				imgui_app_fw::end_frame(clear_color);
+				imgui_app_fw()->end_frame(clear_color);
 			}
 
-			imgui_app_fw::destroy();
+			imgui_app_fw()->destroy();
 		}
 	}
 

@@ -908,9 +908,8 @@ struct platform_renderer_data
 																		 .AddViewport(FG::float2{draw_data->DisplaySize.x, draw_data->DisplaySize.y})
 																		 .AddTarget(FG::RenderTargetID::Color_0, image, _clearColor, FG::EAttachmentStoreOp::Store));
 				FG::Task		  draw_ui = m_shared.m_imgui_renderer.draw(
-					 m_imgui_window, draw_data, ctx, cmdbuf, pass_id, dep_tasks, 
-					 [&cmdbuf, &pass_id](const ImDrawList& cmd_list, const ImDrawCmd& cmd) -> FG::Task {
-						 return imgui_app_fw::mutable_userdata(&cmdbuf, pass_id).call(cmd_list, cmd);
+					 m_imgui_window, draw_data, ctx, cmdbuf, pass_id, dep_tasks, [&cmdbuf, &pass_id](const ImDrawList& cmd_list, const ImDrawCmd& cmd) -> FG::Task {
+						 return imgui_app_fw_interface::mutable_userdata(&cmdbuf, pass_id).call(cmd_list, cmd);
 					 });
 				FG::Unused(draw_ui);
 
@@ -920,29 +919,76 @@ struct platform_renderer_data
 	}
 };
 
-struct gui_primary_context
+struct imgui_app_fw_impl : public imgui_app_fw_interface
 {
-	ImGuiContext* m_context = nullptr;
-
-	GLFWwindow* m_window								= nullptr;
-	double		m_time									= 0.0;
-	bool		m_mouse_pressed[ImGuiMouseButton_COUNT] = {};
-	GLFWcursor* m_mouse_cursors[ImGuiMouseCursor_COUNT] = {};
-	bool		m_need_monitor_update					= true;
-	bool		m_ready									= false;
-
-	gui_primary_context(ImVec2 p, ImVec2 s)
+	static inline imgui_app_fw_impl* singleton()
 	{
-		if (!glfwInit())
-		{
-			throw std::exception("glfw creation failed");
-		}
-
-		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-		m_window = glfwCreateWindow(int(s.x), int(s.y), "", NULL, NULL);
+		return reinterpret_cast<imgui_app_fw_impl*>(imgui_app_fw().get());
 	}
 
-	~gui_primary_context()
+	virtual bool select_platform()
+	{
+		return true;
+	}
+
+	virtual bool init()
+	{
+		return init({100.0f, 100.0f}, {1280.0f, 800.0f});
+	}
+
+	virtual bool pump()
+	{
+		glfwPollEvents();
+		return !glfwWindowShouldClose(m_window);
+	}
+
+	virtual void set_window_title(const char* title)
+	{
+		glfwSetWindowTitle(m_window, title);
+	}
+
+	virtual void begin_frame()
+	{
+		new_frame();
+
+		if (ImGuiViewport* main_viewport = ImGui::GetMainViewport(); main_viewport->PlatformRequestResize)
+		{
+			((platform_renderer_data*)main_viewport->RendererUserData)->handle_resize(main_viewport);
+			main_viewport->PlatformRequestResize = false;
+		}
+
+		ImGui::NewFrame();
+	}
+
+	virtual void end_frame(ImVec4 clear_color)
+	{
+		ImGui::Render();
+
+		ImGuiViewport*			main_viewport	   = ImGui::GetMainViewport();
+		platform_renderer_data* main_viewport_data = (platform_renderer_data*)main_viewport->RendererUserData;
+
+		if (main_viewport->PlatformRequestResize)
+		{
+			main_viewport_data->handle_resize(main_viewport);
+			main_viewport->PlatformRequestResize = false;
+		}
+
+		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			ImGui::UpdatePlatformWindows();
+		}
+
+		m_pending_task = main_viewport_data->load_assets(m_context);
+		main_viewport_data->render_frame(m_context, main_viewport, ImGui::GetDrawData(), m_pending_task);
+
+		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+		{
+			ImGui::RenderPlatformWindowsDefault(nullptr, nullptr);
+		}
+		main_viewport_data->end_frame();
+	}
+
+	virtual void destroy()
 	{
 		shutdown_renderer();
 		shutdown_window();
@@ -951,6 +997,17 @@ struct gui_primary_context
 
 		destroy_window();
 	}
+
+	////
+
+	ImGuiContext* m_context								  = nullptr;
+	GLFWwindow*	  m_window								  = nullptr;
+	double		  m_time								  = 0.0;
+	bool		  m_mouse_pressed[ImGuiMouseButton_COUNT] = {};
+	GLFWcursor*	  m_mouse_cursors[ImGuiMouseCursor_COUNT] = {};
+	bool		  m_need_monitor_update					  = true;
+	bool		  m_ready								  = false;
+	FG::Task	  m_pending_task						  = nullptr;
 
 	void on_mouse_button(GLFWwindow* window, int button, int action, int mods)
 	{
@@ -1108,11 +1165,11 @@ struct gui_primary_context
 		m_mouse_cursors[ImGuiMouseCursor_NotAllowed] = glfwCreateStandardCursor(GLFW_NOT_ALLOWED_CURSOR);
 		glfwSetErrorCallback(prev_error_callback);
 
-		glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods) -> void { instance->on_mouse_button(window, button, action, mods); });
-		glfwSetScrollCallback(window, [](GLFWwindow* window, double xoffset, double yoffset) -> void { instance->on_scroll(window, xoffset, yoffset); });
-		glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) -> void { instance->on_key(window, key, scancode, action, mods); });
-		glfwSetCharCallback(window, [](GLFWwindow* window, unsigned int c) -> void { instance->on_char(window, c); });
-		glfwSetMonitorCallback([](GLFWmonitor*, int) -> void { instance->m_need_monitor_update = true; });
+		glfwSetMouseButtonCallback(window, [](GLFWwindow* window, int button, int action, int mods) -> void { singleton()->on_mouse_button(window, button, action, mods); });
+		glfwSetScrollCallback(window, [](GLFWwindow* window, double xoffset, double yoffset) -> void { singleton()->on_scroll(window, xoffset, yoffset); });
+		glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) -> void { singleton()->on_key(window, key, scancode, action, mods); });
+		glfwSetCharCallback(window, [](GLFWwindow* window, unsigned int c) -> void { singleton()->on_char(window, c); });
+		glfwSetMonitorCallback([](GLFWmonitor*, int) -> void { singleton()->m_need_monitor_update = true; });
 
 		// Update monitors the first time (note: monitor callback are broken in GLFW 3.2 and earlier, see github.com/glfw/glfw/issues/784)
 		update_monitors();
@@ -1137,8 +1194,7 @@ struct gui_primary_context
 				glfwWindowHint(GLFW_FOCUS_ON_SHOW, false);
 				glfwWindowHint(GLFW_DECORATED, (viewport->Flags & ImGuiViewportFlags_NoDecoration) ? false : true);
 				glfwWindowHint(GLFW_FLOATING, (viewport->Flags & ImGuiViewportFlags_TopMost) ? true : false);
-				GLFWwindow* share_window = nullptr;
-				data->m_window			 = glfwCreateWindow((int)viewport->Size.x, (int)viewport->Size.y, "No Title Yet", NULL, share_window);
+				data->m_window			 = glfwCreateWindow((int)viewport->Size.x, (int)viewport->Size.y, "No Title Yet", nullptr, nullptr);
 				data->m_window_owned	 = true;
 				viewport->PlatformHandle = (void*)data->m_window;
 #ifdef _WIN32
@@ -1148,16 +1204,16 @@ struct gui_primary_context
 
 				// Install GLFW callbacks for secondary viewports
 				glfwSetMouseButtonCallback(
-					data->m_window, [](GLFWwindow* window, int button, int action, int mods) -> void { instance->on_mouse_button(window, button, action, mods); });
+					data->m_window, [](GLFWwindow* window, int button, int action, int mods) -> void { singleton()->on_mouse_button(window, button, action, mods); });
 
-				glfwSetScrollCallback(data->m_window, [](GLFWwindow* window, double xoffset, double yoffset) -> void { instance->on_scroll(window, xoffset, yoffset); });
+				glfwSetScrollCallback(data->m_window, [](GLFWwindow* window, double xoffset, double yoffset) -> void { singleton()->on_scroll(window, xoffset, yoffset); });
 
 				glfwSetKeyCallback(
-					data->m_window, [](GLFWwindow* window, int key, int scancode, int action, int mods) -> void { instance->on_key(window, key, scancode, action, mods); });
+					data->m_window, [](GLFWwindow* window, int key, int scancode, int action, int mods) -> void { singleton()->on_key(window, key, scancode, action, mods); });
 
-				glfwSetCharCallback(data->m_window, [](GLFWwindow* window, unsigned int c) -> void { instance->on_char(window, c); });
+				glfwSetCharCallback(data->m_window, [](GLFWwindow* window, unsigned int c) -> void { singleton()->on_char(window, c); });
 
-				glfwSetWindowSizeCallback(data->m_window, [](GLFWwindow* window, int a, int b) -> void { instance->on_window_size(window, a, b); });
+				glfwSetWindowSizeCallback(data->m_window, [](GLFWwindow* window, int a, int b) -> void { singleton()->on_window_size(window, a, b); });
 
 				glfwSetWindowCloseCallback(data->m_window, [](GLFWwindow* window) -> void {
 					if (ImGuiViewport* viewport = ImGui::FindViewportByPlatformHandle(window))
@@ -1278,7 +1334,7 @@ struct gui_primary_context
 
 #if HAS_WIN32_IME
 			platform_io.Platform_SetImeInputPos = [](ImGuiViewport* viewport, ImVec2 pos) -> void {
-				COMPOSITIONFORM cf = {CFS_FORCE_POSITION, {(LONG)(pos.x - viewport->Pos.x), (LONG)(pos.y - viewport->Pos.y)}, {0, 0, 0, 0}};
+				COMPOSITIONFORM cf = {CFS_FORCE_POSITION, {(LONG)(pos.x - viewport->Pos.x), (LONG)(pos.y - viewport->Pos.y)}, { 0, 0, 0, 0 }};
 				if (HWND hwnd = (HWND)viewport->PlatformHandleRaw)
 					if (HIMC himc = ::ImmGetContext(hwnd))
 					{
@@ -1296,7 +1352,7 @@ struct gui_primary_context
 			main_viewport->PlatformHandle		= (void*)m_window;
 		}
 
-		glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int a, int b) -> void { instance->on_window_size(window, a, b); });
+		glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int a, int b) -> void { singleton()->on_window_size(window, a, b); });
 
 		return true;
 	}
@@ -1494,19 +1550,18 @@ struct gui_primary_context
 		{
 			ImGuiPlatformIO& platform_io	  = ImGui::GetPlatformIO();
 			platform_io.Renderer_CreateWindow = [](ImGuiViewport* viewport) -> void {
-				instance->create_secondary_window(viewport);
+				singleton()->create_secondary_window(viewport);
 			};
 			platform_io.Renderer_DestroyWindow = [](ImGuiViewport* viewport) -> void {
-				instance->destroy_secondary_window(viewport);
+				singleton()->destroy_secondary_window(viewport);
 			};
 			platform_io.Renderer_SetWindowSize = [](ImGuiViewport* viewport, ImVec2 size) -> void {
-				instance->set_secondary_window_size(viewport, size);
+				singleton()->set_secondary_window_size(viewport, size);
 			};
 			platform_io.Renderer_RenderWindow = [](ImGuiViewport* viewport, void*) -> void {
-				instance->render_secondary_window(viewport);
+				singleton()->render_secondary_window(viewport);
 			};
-			platform_io.Renderer_SwapBuffers = [](ImGuiViewport* viewport, void*) -> void {
-			};
+			platform_io.Renderer_SwapBuffers = [](ImGuiViewport* viewport, void*) -> void {};
 		}
 
 		return true;
@@ -1583,19 +1638,12 @@ struct gui_primary_context
 		data->handle_resize(viewport);
 	}
 
-	FG::Task m_pending_task = nullptr;
-
 	void render_secondary_window(ImGuiViewport* viewport)
 	{
 		const ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 1.0f);
 
 		platform_renderer_data* data = (platform_renderer_data*)viewport->RendererUserData;
 		data->render_frame(ImGui::GetCurrentContext(), viewport, viewport->DrawData, m_pending_task);
-	}
-
-	void set_window_title(const char* title)
-	{
-		glfwSetWindowTitle(m_window, title);
 	}
 
 	void destroy_window()
@@ -1609,49 +1657,16 @@ struct gui_primary_context
 		glfwShowWindow(m_window);
 	}
 
-	void begin_frame()
+	bool init(ImVec2 p, ImVec2 s)
 	{
-		new_frame();
-
-		if (ImGuiViewport* main_viewport = ImGui::GetMainViewport(); main_viewport->PlatformRequestResize)
+		if (!glfwInit())
 		{
-			((platform_renderer_data*)main_viewport->RendererUserData)->handle_resize(main_viewport);
-			main_viewport->PlatformRequestResize = false;
+			throw std::exception("glfw creation failed");
 		}
 
-		ImGui::NewFrame();
-	}
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+		m_window = glfwCreateWindow(int(s.x), int(s.y), "", NULL, NULL);
 
-	void end_frame(ImVec4 clear_color)
-	{
-		ImGui::Render();
-
-		ImGuiViewport*			main_viewport	   = ImGui::GetMainViewport();
-		platform_renderer_data* main_viewport_data = (platform_renderer_data*)main_viewport->RendererUserData;
-
-		if (main_viewport->PlatformRequestResize)
-		{
-			main_viewport_data->handle_resize(main_viewport);
-			main_viewport->PlatformRequestResize = false;
-		}
-
-		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			ImGui::UpdatePlatformWindows();
-		}
-
-		m_pending_task = main_viewport_data->load_assets(m_context);
-		main_viewport_data->render_frame(m_context, main_viewport, ImGui::GetDrawData(), m_pending_task);
-
-		if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-		{
-			ImGui::RenderPlatformWindowsDefault(nullptr, nullptr);
-		}
-		main_viewport_data->end_frame();
-	}
-
-	bool init()
-	{
 		show_window();
 
 		// Setup Dear ImGui context
@@ -1704,49 +1719,9 @@ struct gui_primary_context
 
 		return true;
 	}
-
-	bool pump_events()
-	{
-		glfwPollEvents();
-		return !glfwWindowShouldClose(m_window);
-	}
-
-	static inline std::unique_ptr<gui_primary_context> instance;
 };
 
-void set_window_title_glfw_vulkan(const char* title)
-{
-	gui_primary_context::instance->set_window_title(title);
-}
+///
 
-bool init_gui_glfw_vulkan()
-{
-	gui_primary_context::instance = std::unique_ptr<gui_primary_context>(new gui_primary_context({100.0f, 100.0f}, {1280.0f, 800.0f}));
-	return gui_primary_context::instance->init();
-}
-
-void destroy_gui_glfw_vulkan()
-{
-	gui_primary_context::instance.reset();
-}
-
-bool pump_gui_glfw_vulkan()
-{
-	return gui_primary_context::instance->pump_events();
-}
-
-void begin_frame_gui_glfw_vulkan()
-{
-	gui_primary_context::instance->begin_frame();
-}
-
-void end_frame_gui_glfw_vulkan(ImVec4 clear_color)
-{
-	gui_primary_context::instance->end_frame(clear_color);
-}
-
-FG::IFrameGraph* imgui_app_fw::get_framegraph_instance()
-{
-	assert(ImGui::GetMainViewport() && ImGui::GetMainViewport()->RendererUserData);
-	return platform_renderer_data::m_shared.m_frame_graph.get();
-}
+MU_DEFINE_VIRTUAL_SINGLETON(imgui_app_fw_interface, imgui_app_fw_impl);
+MU_EXPORT_SINGLETON(imgui_app_fw);

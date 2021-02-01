@@ -21,10 +21,10 @@ if (NOT DEFINED CPM_SCRIPTS)
 	# One frustrating part of this project setup is the circular dependency between cpmpckg and this repo.
 	# GIT_TAG will always lag cpmpckg @ HEAD when this project is updated there.
 	CPMAddPackage(
-	  NAME cpmpckg
-	  GITHUB_REPOSITORY loopunit/cpmpckg
-	  GIT_TAG c9f05dddbdff0ec56bb85c920fc504b97cdc8db0
-	  DOWNLOAD_ONLY true)
+		NAME cpmpckg
+		GITHUB_REPOSITORY loopunit/cpmpckg
+		GIT_TAG c3138c0f3c6d72c7cc98d031d35fb6ebba44567d
+		DOWNLOAD_ONLY true)
 
 	include(${cpmpckg_SOURCE_DIR}/cmake/add_cpm_module.cmake)
 else()
@@ -45,6 +45,7 @@ CPMAddBaseModule(imgui)
 CPMAddBaseModule(framegraph)
 CPMAddBaseModule(basis_universal)
 CPMAddBaseModule(glfw)
+CPMAddBaseModule(mu_stdlib)
 
 set(imgui_app_fw_SOURCE_ROOT ${CMAKE_CURRENT_LIST_DIR})
 
@@ -91,7 +92,7 @@ target_link_libraries(imgui_app_fw
 
 target_link_libraries(imgui_app_fw
 	PUBLIC
-		cpm_runtime::glfw cpm_runtime::framegraph cpm_runtime::basis_universal)
+		cpm_runtime::glfw cpm_runtime::framegraph cpm_runtime::basis_universal cpm_runtime::mu_stdlib)
 
 set_target_properties(imgui_app_fw PROPERTIES CXX_STANDARD 17)
 
