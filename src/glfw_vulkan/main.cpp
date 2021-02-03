@@ -282,7 +282,7 @@ struct basis_cache
 		}
 	}
 
-// clang-format off
+	// clang-format off
 	#define BASIS_FG_PAIR( _visit_ ) \
 		_visit_( basist::transcoder_texture_format::cTFBC1_RGB,			FG::EPixelFormat::BC1_RGB8_UNorm ) \
 		_visit_( basist::transcoder_texture_format::cTFBC3_RGBA,		FG::EPixelFormat::BC3_RGBA8_UNorm ) \
@@ -926,28 +926,36 @@ struct imgui_app_fw_impl : public imgui_app_fw_interface
 		return reinterpret_cast<imgui_app_fw_impl*>(imgui_app_fw().get());
 	}
 
-	virtual bool select_platform()
+	virtual mu::leaf::result<void> select_platform() noexcept
 	{
-		return true;
+		return {};
 	}
 
-	virtual bool init()
+	virtual mu::leaf::result<void> init() noexcept
 	{
-		return init({100.0f, 100.0f}, {1280.0f, 800.0f});
+		BOOST_LEAF_CHECK(init({100.0f, 100.0f}, {1280.0f, 800.0f}));
+		return {};
 	}
 
-	virtual bool pump()
+	virtual mu::leaf::result<bool> pump() noexcept
 	{
 		glfwPollEvents();
 		return !glfwWindowShouldClose(m_window);
 	}
 
-	virtual void set_window_title(const char* title)
+	virtual mu::leaf::result<void> set_window_title(const char* title) noexcept
 	{
-		glfwSetWindowTitle(m_window, title);
+		try
+		{
+			glfwSetWindowTitle(m_window, title);
+		}
+		catch (...)
+		{
+		}
+		return {};
 	}
 
-	virtual void begin_frame()
+	virtual mu::leaf::result<void> begin_frame() noexcept
 	{
 		new_frame();
 
@@ -958,9 +966,11 @@ struct imgui_app_fw_impl : public imgui_app_fw_interface
 		}
 
 		ImGui::NewFrame();
+
+		return {};
 	}
 
-	virtual void end_frame(ImVec4 clear_color)
+	virtual mu::leaf::result<void> end_frame(ImVec4 clear_color) noexcept
 	{
 		ImGui::Render();
 
@@ -986,9 +996,11 @@ struct imgui_app_fw_impl : public imgui_app_fw_interface
 			ImGui::RenderPlatformWindowsDefault(nullptr, nullptr);
 		}
 		main_viewport_data->end_frame();
+
+		return {};
 	}
 
-	virtual void destroy()
+	virtual mu::leaf::result<void> destroy() noexcept
 	{
 		shutdown_renderer();
 		shutdown_window();
@@ -996,6 +1008,8 @@ struct imgui_app_fw_impl : public imgui_app_fw_interface
 		m_context = nullptr;
 
 		destroy_window();
+
+		return {};
 	}
 
 	////
@@ -1561,7 +1575,8 @@ struct imgui_app_fw_impl : public imgui_app_fw_interface
 			platform_io.Renderer_RenderWindow = [](ImGuiViewport* viewport, void*) -> void {
 				singleton()->render_secondary_window(viewport);
 			};
-			platform_io.Renderer_SwapBuffers = [](ImGuiViewport* viewport, void*) -> void {};
+			platform_io.Renderer_SwapBuffers = [](ImGuiViewport* viewport, void*) -> void {
+			};
 		}
 
 		return true;
@@ -1657,11 +1672,12 @@ struct imgui_app_fw_impl : public imgui_app_fw_interface
 		glfwShowWindow(m_window);
 	}
 
-	bool init(ImVec2 p, ImVec2 s)
+	mu::leaf::result<void> init(ImVec2 p, ImVec2 s) noexcept
 	{
 		if (!glfwInit())
 		{
-			throw std::exception("glfw creation failed");
+			return mu::leaf::new_error();
+			//("glfw creation failed");
 		}
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -1717,7 +1733,7 @@ struct imgui_app_fw_impl : public imgui_app_fw_interface
 
 		basist::basisu_transcoder_init();
 
-		return true;
+		return {};
 	}
 };
 

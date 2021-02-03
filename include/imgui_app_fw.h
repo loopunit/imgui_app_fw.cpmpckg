@@ -9,13 +9,13 @@ struct imgui_app_fw_interface
 	imgui_app_fw_interface()		  = default;
 	virtual ~imgui_app_fw_interface() = default;
 
-	virtual bool select_platform()					 = 0;
-	virtual void set_window_title(const char* title) = 0;
-	virtual bool init()								 = 0;
-	virtual bool pump()								 = 0;
-	virtual void begin_frame()						 = 0;
-	virtual void end_frame(ImVec4 clear_color)		 = 0;
-	virtual void destroy()							 = 0;
+	virtual mu::leaf::result<void> select_platform() noexcept					= 0;
+	virtual mu::leaf::result<void> set_window_title(const char* title) noexcept = 0;
+	virtual mu::leaf::result<void> init() noexcept								= 0;
+	virtual mu::leaf::result<bool> pump() noexcept								= 0;
+	virtual mu::leaf::result<void> begin_frame() noexcept						= 0;
+	virtual mu::leaf::result<void> end_frame(ImVec4 clear_color) noexcept		= 0;
+	virtual mu::leaf::result<void> destroy() noexcept							= 0;
 
 	struct mutable_userdata
 	{
