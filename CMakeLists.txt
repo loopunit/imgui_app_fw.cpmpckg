@@ -23,7 +23,7 @@ if (NOT DEFINED CPM_SCRIPTS)
 	CPMAddPackage(
 		NAME cpmpckg
 		GITHUB_REPOSITORY loopunit/cpmpckg
-		GIT_TAG 137aed86a29e21a791420f5e454cfd0d8c0e30dc
+		GIT_TAG 10daafe97294a85d6618266d08fbfaba27d5381f
 		DOWNLOAD_ONLY true)
 
 	include(${cpmpckg_SOURCE_DIR}/cmake/add_cpm_module.cmake)
@@ -88,11 +88,11 @@ target_include_directories(imgui_app_fw PUBLIC $<BUILD_INTERFACE:${imgui_app_fw_
 
 target_link_libraries(imgui_app_fw
 	PUBLIC
-		cpm_runtime::imgui)
+		cpm_install::imgui)
 
 target_link_libraries(imgui_app_fw
 	PUBLIC
-		cpm_runtime::glfw cpm_runtime::framegraph cpm_runtime::basis_universal cpm_runtime::mu_stdlib)
+		cpm_install::glfw cpm_install::framegraph cpm_install::basis_universal cpm_install::mu_stdlib)
 
 set_target_properties(imgui_app_fw PROPERTIES CXX_STANDARD 17)
 
@@ -104,7 +104,7 @@ packageProject(
 	INCLUDE_DESTINATION include
 	DEPENDENCIES "imgui")
 
-add_library(cpm_runtime::imgui_app_fw ALIAS imgui_app_fw)
+add_library(cpm_install::imgui_app_fw ALIAS imgui_app_fw)
 
 if(IMGUI_BUILD_EXAMPLES)
 	file(GLOB example_sources 
@@ -121,5 +121,5 @@ if(IMGUI_BUILD_EXAMPLES)
 
 	target_link_libraries(imgui_example 
 		PUBLIC
-			cpm_runtime::imgui_app_fw)
+			cpm_install::imgui_app_fw)
 endif()
