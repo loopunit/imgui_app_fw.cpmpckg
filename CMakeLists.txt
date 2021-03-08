@@ -23,7 +23,7 @@ if (NOT DEFINED CPM_SCRIPTS)
 	CPMAddPackage(
 		NAME cpmpckg
 		GITHUB_REPOSITORY loopunit/cpmpckg
-		GIT_TAG 2314e4a0a81a1e0ba5250b7a32f153d83e89a9bd
+		GIT_TAG 57f2899ed3922bc4d5d7c0fc93c37de69c12c52f
 		DOWNLOAD_ONLY true)
 
 	include(${cpmpckg_SOURCE_DIR}/cmake/add_cpm_module.cmake)
@@ -106,7 +106,7 @@ packageProject(
 
 add_library(cpm_install::imgui_app_fw ALIAS imgui_app_fw)
 
-if(IMGUI_BUILD_EXAMPLES)
+if(CPM_BUILD_TEST)
 	file(GLOB example_sources 
 		${CMAKE_CURRENT_LIST_DIR}/examples/main.cpp)
 
